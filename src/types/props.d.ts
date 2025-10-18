@@ -5,3 +5,7 @@ interface CalculatorState {
   isNewNumber: boolean;
   lastExpression?: string;
 }
+
+type ThemeState = {
+  colorScheme: 'system' | 'light' | 'dark';
+};

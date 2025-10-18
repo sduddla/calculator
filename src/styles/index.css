@@ -2,13 +2,25 @@
 
 @layer components {
   .calc-btn {
-    @apply rounded-2xl shadow-sm text-xl font-semibold cursor-pointer active:shadow-inner transition active:translate-y-[2px];
+    @apply rounded-2xl text-xl font-semibold cursor-pointer active:translate-y-[2px];
+    box-shadow: -2px -2px 4px rgba(255, 255, 255, 0.6),
+      2px 2px 4px rgba(0, 0, 0, 0.1);
   }
+
+  .dark .calc-btn {
+    box-shadow: -2px -2px 4px rgba(255, 255, 255, 0.04),
+      2px 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  .dark .calc-white {
+    @apply text-[#fff];
+  }
+
   .calc-gray {
-    @apply text-gray-500;
+    @apply text-gray-400;
   }
 
   .calc-blue {
-    @apply text-blue-500;
+    @apply text-blue-500 dark:text-amber-300;
   }
 }

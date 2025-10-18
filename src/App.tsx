@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
+import ThemeToggle from './components/ThemeToggle';
 
 export default function App() {
   const [calculatorState, setCalculatorState] = useState<CalculatorState>({
@@ -11,6 +12,13 @@ export default function App() {
   });
 
   const [history, setHistory] = useState<string[]>([]);
+
+  const [theme, setTheme] = useState<ThemeState>(() => {
+    const saved = localStorage.getItem('color-scheme');
+    return {
+      colorScheme: (saved as ThemeState['colorScheme']) || 'system',
+    };
+  });
 
   // 숫자 버튼 클릭
   const handleNumberClick = (
@@ -138,15 +146,36 @@ export default function App() {
     });
   };
 
+  // 시스템 다크 모드
+  useLayoutEffect(() => {
+    if (theme.colorScheme === 'system') {
+      document.documentElement.classList.remove('light', 'dark');
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.add('light');
+      }
+    } else {
+      // 시스템 아닐 때
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(theme.colorScheme);
+    }
+
+    localStorage.setItem('color-scheme', theme.colorScheme);
+  }, [theme]);
+
   return (
     <>
-      <div className='bg-gray-600 flex items-center justify-center h-screen'>
-        <article className='w-[360px] bg-[#fff] rounded-2xl p-5 shadow-2xl'>
+      <div className='bg-[#E6E9F0] flex items-center justify-center h-screen'>
+        <article className='w-[360px] bg-[#fff] rounded-2xl p-5 shadow-2xl dark:bg-[#1C1C1C]'>
+          <ThemeToggle
+            colorScheme={theme.colorScheme}
+            themeChange={(scheme) => setTheme({ colorScheme: scheme })}
+          />
           <div
-            className='w-full h-[70px] rounded-sm mt-3 mb-6 overflow-y-auto px-2'
-            style={{
-              boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.15)',
-            }}
+            className='w-full h-[70px] rounded-sm mt-3 mb-6 overflow-y-auto px-2
+             shadow-[inset_0_2px_6px_rgba(0,0,0,0.2)]
+             dark:shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]'
           >
             {history.length === 0
               ? ''
@@ -159,12 +188,12 @@ export default function App() {
                   </div>
                 ))}
           </div>
-          <div className='text-sm text-right px-2 opacity-70 h-[24px]'>
+          <div className='text-sm text-right px-2 opacity-70 h-[24px] dark:text-[#fff]'>
             {calculatorState.lastExpression ?? ''}
           </div>
           <input
             type='text'
-            className='text-right text-4xl mb-5 px-2 text-black w-full'
+            className='text-right text-4xl mb-5 px-2 w-full dark:text-[#fff]'
             value={
               calculatorState.previousNumber && calculatorState.operation
                 ? `${calculatorState.previousNumber}${calculatorState.operation}${calculatorState.currentNumber}`
@@ -201,19 +230,19 @@ export default function App() {
             <input
               type='button'
               value='7'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='8'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='9'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
@@ -226,19 +255,19 @@ export default function App() {
             <input
               type='button'
               value='4'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='5'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='6'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
@@ -251,19 +280,19 @@ export default function App() {
             <input
               type='button'
               value='1'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='2'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='3'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleNumberClick}
             />
             <input
@@ -276,13 +305,13 @@ export default function App() {
             <input
               type='button'
               value='0'
-              className='calc-btn col-span-2'
+              className='calc-btn col-span-2 calc-white'
               onClick={handleNumberClick}
             />
             <input
               type='button'
               value='.'
-              className='calc-btn'
+              className='calc-btn calc-white'
               onClick={handleDot}
             />
             <input
