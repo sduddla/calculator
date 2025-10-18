@@ -10,6 +10,8 @@ export default function App() {
     lastExpression: '', // 수식
   });
 
+  const [history, setHistory] = useState<string[]>([]);
+
   // 숫자 버튼 클릭
   const handleNumberClick = (
     e: React.MouseEvent<HTMLInputElement, MouseEvent>
@@ -75,6 +77,13 @@ export default function App() {
           isNewNumber: true,
           lastExpression: `${calculatorState.previousNumber}${calculatorState.operation}${calculatorState.currentNumber}`,
         });
+
+        setHistory((prev) => [
+          ...prev,
+          `${calculatorState.previousNumber}${calculatorState.operation}${
+            calculatorState.currentNumber
+          }=${result.toString()}`,
+        ]);
       } else {
         // 다른 연산 기호 클릭
         setCalculatorState({
@@ -138,8 +147,19 @@ export default function App() {
             style={{
               boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.15)',
             }}
-          ></div>
-          <div className='text-sm text-right px-2 opacity-50 h-[24px]'>
+          >
+            {history.length === 0
+              ? ''
+              : history.map((result, index) => (
+                  <div
+                    key={index}
+                    className='mt-1 last:mb-1 text-[12px] text-gray-500'
+                  >
+                    {result}
+                  </div>
+                ))}
+          </div>
+          <div className='text-sm text-right px-2 opacity-70 h-[24px]'>
             {calculatorState.lastExpression ?? ''}
           </div>
           <input
