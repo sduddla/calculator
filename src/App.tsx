@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js';
 import { useState } from 'react';
 
 export default function App() {
@@ -50,19 +51,19 @@ export default function App() {
       // 연산 기호
       switch (calculatorState.operation) {
         case '+':
-          result = prev + current;
+          result = new Decimal(prev).plus(current).toNumber();
           break;
         case '-':
-          result = prev - current;
+          result = new Decimal(prev).minus(current).toNumber();
           break;
         case 'x':
-          result = prev * current;
+          result = new Decimal(prev).mul(current).toNumber();
           break;
         case '÷':
-          result = prev / current;
+          result = new Decimal(prev).dividedBy(current).toNumber();
           break;
         case '%':
-          result = prev % current;
+          result = new Decimal(prev).mod(current).toNumber();
           break;
       }
 
@@ -116,6 +117,15 @@ export default function App() {
       operation: null,
       isNewNumber: true,
       lastExpression: '',
+    });
+  };
+
+  // 소수점 버튼 클릭
+  const handleDot = () => {
+    setCalculatorState({
+      ...calculatorState,
+      currentNumber: calculatorState.currentNumber + '.',
+      isNewNumber: false,
     });
   };
 
@@ -249,7 +259,12 @@ export default function App() {
               className='calc-btn col-span-2'
               onClick={handleNumberClick}
             />
-            <input type='button' value='.' className='calc-btn' />
+            <input
+              type='button'
+              value='.'
+              className='calc-btn'
+              onClick={handleDot}
+            />
             <input
               type='button'
               value='='
