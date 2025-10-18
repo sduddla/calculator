@@ -1,1 +1,14 @@
 @import './tailwind.css';
+
+@layer components {
+  .calc-btn {
+    @apply rounded-2xl shadow-sm text-xl font-semibold cursor-pointer active:shadow-inner transition active:translate-y-[2px];
+  }
+  .calc-gray {
+    @apply text-gray-500;
+  }
+
+  .calc-blue {
+    @apply text-blue-500;
+  }
+}
