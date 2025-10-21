@@ -1,17 +1,24 @@
 import Decimal from 'decimal.js';
 import { useLayoutEffect, useState } from 'react';
 import ThemeToggle from './components/ThemeToggle';
+import { useCalculatorStore } from './store/useCalculatorStore';
 
 export default function App() {
-  const [calculatorState, setCalculatorState] = useState<CalculatorState>({
-    currentNumber: '0', // 현재 입력 중인 숫자
-    previousNumber: '', // 이전에 입력된 숫자
-    operation: null, // 클릭한 연산 기호
-    isNewNumber: false, // 새로운 숫자 입력 여부
-    lastExpression: '', // 수식
-  });
-
-  const [history, setHistory] = useState<string[]>([]);
+  const {
+    currentNumber,
+    previousNumber,
+    operation,
+    isNewNumber,
+    lastExpression,
+    history,
+    setCurrentNumber,
+    setPreviousNumber,
+    setOperation,
+    setIsNewNumber,
+    setLastExpression,
+    addToHistory,
+    clearAll,
+  } = useCalculatorStore();
 
   const [theme, setTheme] = useState<ThemeState>(() => {
     const saved = localStorage.getItem('color-scheme');
@@ -26,22 +33,12 @@ export default function App() {
   ) => {
     const value = e.currentTarget.value;
 
-    if (calculatorState.isNewNumber) {
-      // 새로운 숫자
-      setCalculatorState({
-        ...calculatorState,
-        currentNumber: value,
-        isNewNumber: false,
-      });
+    if (isNewNumber) {
+      setCurrentNumber(value);
+      setIsNewNumber(false);
     } else {
       // 이전 숫자에 새로운 숫자 이어 붙이기
-      setCalculatorState({
-        ...calculatorState,
-        currentNumber:
-          calculatorState.currentNumber === '0'
-            ? value
-            : calculatorState.currentNumber + value,
-      });
+      setCurrentNumber(currentNumber === '0' ? value : currentNumber + value);
     }
   };
 
@@ -51,15 +48,15 @@ export default function App() {
   ) => {
     const operator = e.currentTarget.value; // 현재 선택한 연산 기호
 
-    const current = parseFloat(calculatorState.currentNumber); // 숫자로
+    const current = parseFloat(currentNumber); // 숫자로
 
     // 이전 숫자와 연산 기호가 모두 있을 경우, 계속 연산
-    if (calculatorState.previousNumber !== '' && calculatorState.operation) {
-      const prev = parseFloat(calculatorState.previousNumber);
+    if (previousNumber !== '' && operation) {
+      const prev = parseFloat(previousNumber);
       let result = 0;
 
       // 연산 기호
-      switch (calculatorState.operation) {
+      switch (operation) {
         case '+':
           result = new Decimal(prev).plus(current).toNumber();
           break;
@@ -78,75 +75,47 @@ export default function App() {
       }
 
       if (operator === '=') {
-        setCalculatorState({
-          currentNumber: result.toString(),
-          previousNumber: '',
-          operation: null,
-          isNewNumber: true,
-          lastExpression: `${calculatorState.previousNumber}${calculatorState.operation}${calculatorState.currentNumber}`,
-        });
-
-        setHistory((prev) => [
-          ...prev,
-          `${calculatorState.previousNumber}${calculatorState.operation}${
-            calculatorState.currentNumber
-          }=${result.toString()}`,
-        ]);
+        setCurrentNumber(result.toString());
+        setPreviousNumber('');
+        setOperation(null);
+        setIsNewNumber(true);
+        addToHistory(
+          `${previousNumber}${operation}${currentNumber}=${result.toString()}`
+        );
       } else {
         // 다른 연산 기호 클릭
-        setCalculatorState({
-          currentNumber: '',
-          previousNumber: result.toString(),
-          operation: operator,
-          isNewNumber: true,
-        });
+        setCurrentNumber('');
+        setPreviousNumber(result.toString());
+        setOperation(operator);
+        setIsNewNumber(true);
       }
-    } else if (calculatorState.currentNumber !== '' && operator === '=') {
-      setCalculatorState({
-        ...calculatorState,
-        isNewNumber: true,
-      });
+    } else if (currentNumber !== '' && operator === '=') {
+      setIsNewNumber(true);
     } else {
       // 첫 번째 숫자 입력 후 연산 클릭하는 경우
-      setCalculatorState({
-        currentNumber: '',
-        previousNumber: current.toString(),
-        operation: operator,
-        isNewNumber: true,
-      });
+      setPreviousNumber(current.toString());
+      setOperation(operator);
+      setIsNewNumber(true);
     }
   };
 
   // DEL 버튼 클릭
   const handleDelete = () => {
-    setCalculatorState((prev: CalculatorState) => ({
-      ...prev,
-      currentNumber: prev.currentNumber.slice(0, -1),
-      lastExpression: '',
-    }));
+    setCurrentNumber(currentNumber.slice(0, -1));
+    setLastExpression('');
   };
 
   // AC 버튼 클릭
   const handleClear = () => {
-    setCalculatorState({
-      currentNumber: '0',
-      previousNumber: '',
-      operation: null,
-      isNewNumber: true,
-      lastExpression: '',
-    });
+    clearAll();
   };
 
   // 소수점 버튼 클릭
   const handleDot = () => {
-    setCalculatorState({
-      ...calculatorState,
-      currentNumber: calculatorState.currentNumber + '.',
-      isNewNumber: false,
-    });
+    setCurrentNumber(currentNumber + '.');
+    setIsNewNumber(false);
   };
 
-  // 시스템 다크 모드
   useLayoutEffect(() => {
     if (theme.colorScheme === 'system') {
       document.documentElement.classList.remove('light', 'dark');
@@ -189,16 +158,19 @@ export default function App() {
                 ))}
           </div>
           <div className='text-sm text-right px-2 opacity-70 h-[24px] dark:text-[#fff]'>
-            {calculatorState.lastExpression ?? ''}
+            {lastExpression ?? ''}
           </div>
           <input
             type='text'
             className='text-right text-4xl mb-5 px-2 w-full dark:text-[#fff]'
             value={
-              calculatorState.previousNumber && calculatorState.operation
-                ? `${calculatorState.previousNumber}${calculatorState.operation}${calculatorState.currentNumber}`
-                : calculatorState.currentNumber || '0'
+              previousNumber && operation
+                ? `${previousNumber}${operation}${
+                    isNewNumber ? '' : currentNumber
+                  }`
+                : currentNumber || '0'
             }
+            readOnly
           />
 
           <form className='grid grid-cols-4 gap-4 auto-rows-[60px]'>
