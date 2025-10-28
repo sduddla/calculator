@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import ThemeToggle from './components/ThemeToggle';
 import { useCalculatorStore } from './store/useCalculatorStore';
 
@@ -27,76 +27,100 @@ export default function App() {
     };
   });
 
+  // 숫자
+  const handleNumber = useCallback(
+    (value: string) => {
+      if (isNewNumber) {
+        setCurrentNumber(value);
+        setIsNewNumber(false);
+      } else {
+        // 이전 숫자에 새로운 숫자 이어 붙이기
+        setCurrentNumber(currentNumber === '0' ? value : currentNumber + value);
+      }
+    },
+    [currentNumber, isNewNumber, setCurrentNumber, setIsNewNumber]
+  );
+
   // 숫자 버튼 클릭
   const handleNumberClick = (
     e: React.MouseEvent<HTMLInputElement, MouseEvent>
   ) => {
-    const value = e.currentTarget.value;
-
-    if (isNewNumber) {
-      setCurrentNumber(value);
-      setIsNewNumber(false);
-    } else {
-      // 이전 숫자에 새로운 숫자 이어 붙이기
-      setCurrentNumber(currentNumber === '0' ? value : currentNumber + value);
-    }
+    handleNumber(e.currentTarget.value);
   };
+
+  // 연산자
+  const handleOperator = useCallback(
+    (operator: string) => {
+      const current = parseFloat(currentNumber); // 숫자로
+
+      // 이전 숫자와 연산 기호가 모두 있을 경우, 계속 연산
+      if (previousNumber !== '' && operation) {
+        const prev = parseFloat(previousNumber);
+        let result = 0;
+
+        // 연산 기호
+        switch (operation) {
+          case '+':
+            result = new Decimal(prev).plus(current).toNumber();
+            break;
+          case '-':
+            result = new Decimal(prev).minus(current).toNumber();
+            break;
+          case 'x':
+            result = new Decimal(prev).mul(current).toNumber();
+            break;
+          case '÷':
+            result = new Decimal(prev).dividedBy(current).toNumber();
+            break;
+          case '%':
+            result = new Decimal(prev).mod(current).toNumber();
+            break;
+        }
+
+        if (operator === '=') {
+          setCurrentNumber(result.toString());
+          setPreviousNumber('');
+          setOperation(null);
+          setIsNewNumber(true);
+          addToHistory(
+            `${previousNumber}${operation}${currentNumber}=${result.toString()}`
+          );
+          setLastExpression(`${previousNumber}${operation}${currentNumber}`);
+        } else {
+          // 다른 연산 기호 클릭
+          setCurrentNumber('');
+          setPreviousNumber(result.toString());
+          setOperation(operator);
+          setIsNewNumber(true);
+        }
+      } else if (currentNumber !== '' && operator === '=') {
+        setIsNewNumber(true);
+      } else {
+        // 첫 번째 숫자 입력 후 연산 클릭하는 경우
+        setPreviousNumber(current.toString());
+        setOperation(operator);
+        setIsNewNumber(true);
+      }
+    },
+    [
+      addToHistory,
+      currentNumber,
+      operation,
+      previousNumber,
+      setCurrentNumber,
+      setIsNewNumber,
+      setLastExpression,
+      setOperation,
+      setPreviousNumber,
+    ]
+  );
 
   // 연산자 버튼 클릭
   const handleOperatorClick = (
     e: React.MouseEvent<HTMLInputElement, MouseEvent>
   ) => {
     const operator = e.currentTarget.value; // 현재 선택한 연산 기호
-
-    const current = parseFloat(currentNumber); // 숫자로
-
-    // 이전 숫자와 연산 기호가 모두 있을 경우, 계속 연산
-    if (previousNumber !== '' && operation) {
-      const prev = parseFloat(previousNumber);
-      let result = 0;
-
-      // 연산 기호
-      switch (operation) {
-        case '+':
-          result = new Decimal(prev).plus(current).toNumber();
-          break;
-        case '-':
-          result = new Decimal(prev).minus(current).toNumber();
-          break;
-        case 'x':
-          result = new Decimal(prev).mul(current).toNumber();
-          break;
-        case '÷':
-          result = new Decimal(prev).dividedBy(current).toNumber();
-          break;
-        case '%':
-          result = new Decimal(prev).mod(current).toNumber();
-          break;
-      }
-
-      if (operator === '=') {
-        setCurrentNumber(result.toString());
-        setPreviousNumber('');
-        setOperation(null);
-        setIsNewNumber(true);
-        addToHistory(
-          `${previousNumber}${operation}${currentNumber}=${result.toString()}`
-        );
-      } else {
-        // 다른 연산 기호 클릭
-        setCurrentNumber('');
-        setPreviousNumber(result.toString());
-        setOperation(operator);
-        setIsNewNumber(true);
-      }
-    } else if (currentNumber !== '' && operator === '=') {
-      setIsNewNumber(true);
-    } else {
-      // 첫 번째 숫자 입력 후 연산 클릭하는 경우
-      setPreviousNumber(current.toString());
-      setOperation(operator);
-      setIsNewNumber(true);
-    }
+    handleOperator(operator);
   };
 
   // DEL 버튼 클릭
@@ -111,10 +135,10 @@ export default function App() {
   };
 
   // 소수점 버튼 클릭
-  const handleDot = () => {
+  const handleDot = useCallback(() => {
     setCurrentNumber(currentNumber + '.');
     setIsNewNumber(false);
-  };
+  }, [currentNumber, setCurrentNumber, setIsNewNumber]);
 
   useLayoutEffect(() => {
     if (theme.colorScheme === 'system') {
@@ -133,6 +157,40 @@ export default function App() {
     localStorage.setItem('color-scheme', theme.colorScheme);
   }, [theme]);
 
+  // 키보드 입력
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+
+      if (!isNaN(Number(key))) {
+        handleNumber(key);
+      } else if (['+', '-', '*', '/', '%'].includes(key)) {
+        const mappedOperator = key === '*' ? 'x' : key === '/' ? '÷' : key;
+        handleOperator(mappedOperator);
+      } else if (key === 'Enter' || key === '=') {
+        handleOperator('=');
+      } else if (key === 'Backspace') {
+        setCurrentNumber(currentNumber.slice(0, -1));
+        setLastExpression('');
+      } else if (key === 'Escape') {
+        clearAll();
+      } else if (key === '.') {
+        handleDot();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    clearAll,
+    currentNumber,
+    handleDot,
+    handleNumber,
+    handleOperator,
+    setCurrentNumber,
+    setLastExpression,
+  ]);
+
   return (
     <>
       <div className='bg-[#E6E9F0] flex items-center justify-center h-screen'>
@@ -141,11 +199,7 @@ export default function App() {
             colorScheme={theme.colorScheme}
             themeChange={(scheme) => setTheme({ colorScheme: scheme })}
           />
-          <div
-            className='w-full h-[70px] rounded-sm mt-3 mb-6 overflow-y-auto px-2
-             shadow-[inset_0_2px_6px_rgba(0,0,0,0.2)]
-             dark:shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]'
-          >
+          <div className='w-full h-[70px] rounded-sm mt-3 mb-6 overflow-y-auto px-2 shadow-[inset_0_2px_6px_rgba(0,0,0,0.2)] dark:shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]'>
             {history.length === 0
               ? ''
               : history.map((result, index) => (
@@ -162,7 +216,7 @@ export default function App() {
           </div>
           <input
             type='text'
-            className='text-right text-4xl mb-5 px-2 w-full dark:text-[#fff]'
+            className='text-right text-4xl mb-5 px-2 w-full dark:text-[#fff] outline-none'
             value={
               previousNumber && operation
                 ? `${previousNumber}${operation}${
